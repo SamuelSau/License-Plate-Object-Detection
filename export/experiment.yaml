@@ -1,0 +1,215 @@
+model_name: null
+encryption_key: null
+results_dir: /workspace/tao-experiments/export
+wandb:
+  enable: true
+  project: Car-Classification-RTDETR
+  entity: sammy
+  tags:
+  - training
+  - tao-toolkit
+  - RTDETR
+  - VRP
+  - license_plate
+  reinit: false
+  sync_tensorboard: true
+  save_code: true
+  name: RT-DETR run 1
+model:
+  pretrained_backbone_path: /workspace/tao-experiments/models/resnet50_from_detr.pth
+  backbone: resnet_50
+  train_backbone: true
+  load_teacher_enc_dec: false
+  num_queries: 300
+  num_select: 300
+  num_feature_levels: 3
+  return_interm_indices:
+  - 1
+  - 2
+  - 3
+  feat_strides:
+  - 8
+  - 16
+  - 32
+  feat_channels:
+  - 256
+  - 256
+  - 256
+  use_encoder_idx:
+  - 2
+  hidden_dim: 256
+  nheads: 8
+  dropout_ratio: 0.0
+  enc_layers: 1
+  dim_feedforward: 1024
+  pe_temperature: 10000
+  expansion: 1.0
+  depth_mult: 1
+  enc_act: gelu
+  act: silu
+  dec_layers: 6
+  dn_number: 100
+  eval_idx: -1
+  vfl_loss_coef: 2.0
+  bbox_loss_coef: 1.0
+  giou_loss_coef: 2.0
+  class_cost: 2.0
+  bbox_cost: 5.0
+  giou_cost: 2.0
+  alpha: 0.75
+  gamma: 2.0
+  clip_max_norm: 0.1
+  aux_loss: true
+  loss_types:
+  - vfl
+  - boxes
+  backbone_names:
+  - backbone.0
+  linear_proj_names:
+  - reference_points
+  - sampling_offsets
+  distillation_loss_coef: 0.0
+  frozen_fm:
+    enabled: false
+    backbone: radio_v2-l
+    checkpoint: null
+dataset:
+  train_data_sources:
+  - image_dir: /workspace/tao-experiments/data/train/images
+    json_file: /workspace/tao-experiments/data/train/_annotations.coco.json
+  val_data_sources:
+    image_dir: /workspace/tao-experiments/data/val/images
+    json_file: /workspace/tao-experiments/data/val/_annotations.coco.json
+  test_data_sources:
+    image_dir: /workspace/tao-experiments/data/test/images
+    json_file: /workspace/tao-experiments/data/test/_annotations.coco.json
+  infer_data_sources:
+    image_dir:
+    - /workspace/tao-experiments/data/val/images
+    classmap: /workspace/tao-experiments/configs/labels.txt
+  batch_size: 1
+  workers: 8
+  remap_mscoco_category: false
+  pin_memory: true
+  dataset_type: serialized
+  num_classes: 2
+  eval_class_ids:
+  - 0
+  - 1
+  augmentation:
+    multi_scales:
+    - 416
+    train_spatial_size:
+    - 416
+    - 416
+    eval_spatial_size:
+    - 416
+    - 416
+    distortion_prob: 0.7
+    iou_crop_prob: 0.4
+    preserve_aspect_ratio: true
+train:
+  num_gpus: 1
+  gpu_ids:
+  - 0
+  num_nodes: 1
+  seed: 1234
+  cudnn:
+    benchmark: false
+    deterministic: true
+  num_epochs: 10
+  checkpoint_interval: 1
+  validation_interval: 1
+  resume_training_checkpoint_path: /workspace/tao-experiments/results/model_epoch_006.pth
+  results_dir: /workspace/tao-experiments/results
+  freeze: []
+  pretrained_model_path: null
+  clip_grad_norm: 0.1
+  is_dry_run: false
+  enable_ema: false
+  ema:
+    decay: 0.999
+    every_n_steps: 1
+    validate_original_weights: false
+    cpu_offload: false
+  optim:
+    optimizer: AdamW
+    monitor_name: val_loss
+    lr: 0.0002
+    lr_backbone: 5.0e-05
+    momentum: 0.9
+    weight_decay: 0.0001
+    lr_scheduler: MultiStep
+    lr_steps:
+    - 30000
+    - 600000
+    - 90000
+    lr_step_size: 1000
+    lr_decay: 0.1
+    warmup_steps: 500
+  precision: fp32
+  distributed_strategy: ddp
+  activation_checkpoint: true
+  verbose: false
+evaluate:
+  num_gpus: 1
+  gpu_ids:
+  - 0
+  num_nodes: 1
+  checkpoint: /workspace/tao-experiments/results/model_epoch_008.pth
+  trt_engine: /workspace/tao-experiments/engines/rt-detr_fp32.engine
+  results_dir: /workspace/tao-experiments/results/eval_epoch_8_engine
+  input_width: 416
+  input_height: 416
+  conf_threshold: 0.7
+inference:
+  num_gpus: 1
+  gpu_ids:
+  - 0
+  num_nodes: 1
+  checkpoint: /workspace/tao-experiments/results/model_epoch_006.pth
+  trt_engine: /workspace/tao-experiments/engines/rt-detr_fp32.engine
+  results_dir: /workspace/tao-experiments/results/engines_infer_docker
+  color_map:
+    VRP: blue
+    License_Plate: green
+  conf_threshold: 0.7
+  is_internal: false
+  input_width: 416
+  input_height: 416
+  outline_width: 3
+export:
+  results_dir: /workspace/tao-experiments/export
+  gpu_id: 0
+  checkpoint: /workspace/tao-experiments/results/model_epoch_008.pth
+  onnx_file: /workspace/tao-experiments/models/rt-detr_epoch_008.onnx
+  on_cpu: false
+  input_channel: 3
+  input_width: 416
+  input_height: 416
+  opset_version: 17
+  batch_size: 1
+  verbose: true
+  format: onnx
+  serialize_nvdsinfer: true
+gen_trt_engine:
+  results_dir: /workspace/tao-experiments/engines
+  gpu_id: 0
+  onnx_file: /workspace/tao-experiments/models/rt-detr_epoch_008.onnx
+  trt_engine: /workspace/tao-experiments/engines/rt-detr_fp32_epoch_08.engine
+  timing_cache: null
+  batch_size: 1
+  verbose: true
+  tensorrt:
+    workspace_size: 2048
+    min_batch_size: 1
+    opt_batch_size: 1
+    max_batch_size: 1
+    layers_precision: []
+    data_type: fp32
+    calibration:
+      cal_image_dir: ???
+      cal_cache_file: ???
+      cal_batch_size: 1
+      cal_batches: 1
+distill: null

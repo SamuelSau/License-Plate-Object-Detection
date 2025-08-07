@@ -1,0 +1,16 @@
+# Models
+*.engine
+*.onnx
+
+# Data
+*.json
+*.jpg
+
+# Logs
+*.log
+
+# Results
+results/
+
+# Videos
+*.mp4

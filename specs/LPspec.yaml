@@ -1,0 +1,157 @@
+wandb:
+  enable: true
+  project: License-Plate-Classification-RTDETR
+  entity: Sammy Sau
+  tags:
+  - training
+  - tao-toolkit
+  - RTDETR
+  - VRP
+  - License_Plate
+  reinit: false
+  sync_tensorboard: true
+  save_code: true
+  name: RT-DETR run 1
+dataset:
+  train_data_sources:
+    - image_dir: /workspace/tao-experiments/data/train/images
+      json_file: /workspace/tao-experiments/data/train/_annotations.coco.json
+  val_data_sources:
+    image_dir: /workspace/tao-experiments/data/val/images
+    json_file: /workspace/tao-experiments/data/val/_annotations.coco.json
+  test_data_sources:
+    image_dir: /workspace/tao-experiments/data/test/images
+    json_file: /workspace/tao-experiments/data/test/_annotations.coco.json
+  infer_data_sources:
+    image_dir: ["/workspace/tao-experiments/data/val/images"]
+    classmap: /workspace/tao-experiments/configs/labels.txt
+  batch_size: 1
+  workers: 8
+  remap_mscoco_category: false
+  pin_memory: true
+  dataset_type: serialized
+  num_classes: 2
+  eval_class_ids: [0, 1]
+  augmentation:
+    multi_scales:
+    - 416
+    train_spatial_size: 
+    - 416
+    - 416
+    eval_spatial_size: 
+    - 416
+    - 416
+    distortion_prob: 0.7
+    iou_crop_prob: 0.4
+    preserve_aspect_ratio: true
+model:
+    backbone: resnet_50
+    train_backbone: true
+    pretrained_backbone_path: /workspace/tao-experiments/models/resnet50_from_detr.pth
+    return_interm_indices: [1, 2, 3]
+    dec_layers: 6
+    enc_layers: 1
+    pe_temperature: 10000
+    expansion: 1.0
+    depth_mult: 1
+    enc_act: gelu
+    act: silu
+    num_queries: 300 
+    num_feature_levels: 3
+    feat_strides: [8, 16, 32]
+    feat_channels: [256, 256, 256]
+    use_encoder_idx: [2]
+    hidden_dim: 256
+    nheads: 8
+    dim_feedforward: 1024
+    dn_number: 100
+    eval_idx: -1
+    vfl_loss_coef: 2.0 #increased from 1.0 to 2.0 
+    bbox_loss_coef: 3.0 #reduced from 5.0 to 2.0 and increased to 3.0
+    giou_loss_coef: 1.5 #reduced from 2.0 to 1.0 and increased to 1.5
+    alpha: 0.75
+    gamma: 2.0
+    aux_loss: true
+    loss_types:
+    - vfl
+    - boxes
+    backbone_names:
+    - backbone.0
+    linear_proj_names:
+    - reference_points
+    - sampling_offsets
+    distillation_loss_coef: 0.0
+    frozen_fm:
+      enabled: false
+      backbone: radio_v2-l
+      checkpoint: null
+train:
+    optim:
+      optimizer: AdamW
+      monitor_name: val_loss
+      lr: 0.0001 #reduced from 0.0002 to 0.00015, lower more to 0.0001
+      lr_backbone: 0.00002 #increase from 0.00002 to 0.00005 now back down to 0.00003 now back down to 0.00002
+      momentum: 0.9
+      weight_decay: 0.0001
+      lr_scheduler: MultiStep
+      lr_decay: 0.1 
+      lr_steps: [50000, 100000, 150000] #increased from [30000, 60000, 90000] to [50000, 100000, 150000]
+      warmup_steps: 1000 #increased from 500 to 1000
+    num_epochs: 15 #increased from 10 to 15
+    checkpoint_interval: 1
+    validation_interval: 1
+    clip_grad_norm: 0.1
+    precision: fp32
+    distributed_strategy: ddp
+    activation_checkpoint: true
+    num_gpus: 1
+    gpu_ids: [0]
+    num_nodes: 1
+    seed: 1234
+    results_dir: /workspace/tao-experiments/results
+    resume_training_checkpoint_path: "/workspace/tao-experiments/results/model_epoch_006.pth"
+evaluate:
+  results_dir: /workspace/tao-experiments/results/engines_eval_docker
+  checkpoint: /workspace/tao-experiments/results/model_epoch_006.pth
+  conf_threshold: 0.7
+  trt_engine: /workspace/tao-experiments/engines/rt-detr_fp32.engine
+  input_width: 416
+  input_height: 416
+inference:
+  checkpoint: /workspace/tao-experiments/results/model_epoch_006.pth 
+  conf_threshold: 0.7
+  input_width: 416
+  input_height: 416
+  trt_engine: /workspace/tao-experiments/engines/rt-detr_fp32.engine
+  color_map:
+    VRP: blue
+    License_Plate: green
+  results_dir: /workspace/tao-experiments/results/engines_infer_docker
+export:
+  results_dir: /workspace/tao-experiments/export
+  gpu_id: 0
+  checkpoint: /workspace/tao-experiments/results/model_epoch_006.pth
+  onnx_file: /workspace/tao-experiments/export/rt-detr.onnx
+  on_cpu: false
+  input_channel: 3
+  input_width: 416
+  input_height: 416
+  opset_version: 17
+  batch_size: 1
+  verbose: true
+  format: onnx
+  serialize_nvdsinfer: true
+gen_trt_engine:
+  results_dir: /workspace/tao-experiments/engines
+  gpu_id: 0
+  onnx_file: /workspace/tao-experiments/export/rt-detr.onnx
+  trt_engine: /workspace/tao-experiments/engines/rt-detr_fp32.engine
+  timing_cache: null
+  batch_size: 1
+  verbose: true
+  tensorrt:
+    workspace_size: 2048
+    min_batch_size: 1
+    opt_batch_size: 1
+    max_batch_size: 1
+    data_type: fp32
