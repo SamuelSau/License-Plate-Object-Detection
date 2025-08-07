@@ -2,6 +2,8 @@
 
 This project uses NVIDIA TAO Toolkit v.6.0.0 and RT-DETR for license plate detection. 
 
+![RT-DETR-Demo-compressed](https://github.com/user-attachments/assets/97e5f3d7-e8ba-47de-9656-361e1ba4a9a0)
+
 ## Purpose for this project
 
 So I was really interested in Nvidia's pretrained models such as the LDPNet in NGC catalog and challenged myself to see if I could train a custom ML model using RT-DETR (Real-Time Detection Transformer) using the latest version of TAO toolkit. 
