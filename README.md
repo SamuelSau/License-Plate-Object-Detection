@@ -152,8 +152,8 @@ Within the Ubuntu-22.04 environment, I had to setup the .tao_mounts.json to conf
   }
 }
 ```
-***To build the Docker image***
-- `docker build -t custom-deepstream-7.1-rtdetr_lpd:latest .`
+***To get the Docker container***
+- `docker pull samloveswater/custom-deepstream-7.1-rtdetr_lpd:latest .`
 
 ***To run the Deepstream container with display***
 - `xhost +`
