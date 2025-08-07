@@ -2,7 +2,7 @@
 
 This project uses NVIDIA TAO Toolkit v.6.0.0 and RT-DETR for license plate detection. 
 
-![RT-DETR-Demo-compressed](https://github.com/user-attachments/assets/97e5f3d7-e8ba-47de-9656-361e1ba4a9a0)
+![License Plate Detection](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdnFlZHl5emN2NHNtaHlkdnRkY3lzNGRkY3loa3JyNm1nZG5kNTZrdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/iOGP7u1U2CmhGFw2Xg/giphy.gif)
 
 ## Purpose for this project
 
@@ -10,6 +10,24 @@ So I was really interested in Nvidia's pretrained models such as the LDPNet in N
 
 ## Dataset
  The model weights for the pretrained backbone was extracted from https://dl.fbaipublicfiles.com/detr/detr-r50-e632da11.pth. The dataset uses COCO format and was found in https://huggingface.co/datasets/keremberke/license-plate-object-detection.
+
+### DETR R50 COCO BBox Detection Val5k Evaluation Results 
+
+```
+IoU metric: bbox
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.420
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.624
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.442
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.205
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.458
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.611
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.333
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.533
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.574
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.312
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.628
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.805
+```
 
 ### Note ###
 
@@ -34,8 +52,6 @@ This project uses a ResNet-50 backbone integrated within a Transformer-based obj
   - Uses Variational Focal Loss (VFL) with increased weighting for classification (vfl_loss_coef=2.0) and adjusted bounding box and GIoU loss coefficients.
 
 The training is configured with the AdamW optimizer, applying different learning rates for the backbone (0.00002) and the rest of the model (0.0001). Learning rate scheduling uses a multi-step decay at steps [50000, 100000, 150000] with warmup over 1000 steps.
-
-Check ***LPspec.yaml*** for how training and model was done.
 
 ## Evaluation for best epoch: "epoch 6"
 
@@ -66,18 +82,18 @@ Check ***LPspec.yaml*** for how training and model was done.
 
 ## Inference
 
-`tao model rtdetr inference -e /workspace/tao-experiments/specs/LPspec.yaml`
+`tao model rtdetr inference -e /linux/path/to/LPspec.yaml`
 
 ## Exporting to .onnx
 
-`tao model rtdetr export /e /workspace/tao-experiments/specs/LPspec.yaml`
+`tao model rtdetr export -e /linux/path/to/specs/LPspec.yaml`
 
 ## Creating .engine from .onnx
 
-`tao deploy rtdetr gen_trt_engine -e /workspace/tao-experiments/specs/LPspec.yaml`
+`tao deploy rtdetr gen_trt_engine -e /linux/path/to/LPspec.yaml`
 
 ### Evaluating with TensorRT Engine
-`tao deploy rtdetr evaluate -e /workspace/tao-experiments/specs/LPspec.yaml`
+`tao deploy rtdetr evaluate -e /linux/path/to/LPspec.yaml`
 
 ## Setup
 
@@ -87,7 +103,7 @@ Used WSL2, specifically Ubuntu-22.04 LTS for compatibility in Nvidia's software.
 
 | **REPOSITORY**                 | **TAG**              | **IMAGE ID** | **CREATED**  | **SIZE** |
 | ------------------------------ | -------------------- | ------------ | ------------ | -------- |
-| custom-deepstream-7.1-rtdetr_lpd |   debug            | 5350d9b6791f | 5 hours ago  | 32.1GB   |
+| custom-deepstream-7.1-rtdetr_lpd |   latest           | 5350d9b6791f | 5 hours ago  | 32.1GB   |
 | nvcr.io/nvidia/tao/tao-toolkit | 6.0.0-deploy         | d6d7f77609ee | 7 days ago   | 15.5GB   |
 | nvcr.io/nvidia/tao/tao-toolkit | 6.0.0-pyt            | 53c6580161ac | 7 days ago   | 30.3GB   |
 | nvcr.io/nvidia/deepstream      | 7.1-triton-multiarch | 79ae634e62e9 | 9 months ago | 20.4GB   |
@@ -95,39 +111,39 @@ Used WSL2, specifically Ubuntu-22.04 LTS for compatibility in Nvidia's software.
 Within the Ubuntu-22.04 environment, I had to setup the .tao_mounts.json to configure for the docker containers and mounting from the WSL environment to my Windows path. The source and destination were symlinked from my Ubuntu environment to my Windows machine, so I can reference for the directory.
 
 ***Note***
-- I also configured a custom docker container that was modified for my specific setup. For instance, I had debug statements within nvdsinfer_custombboxparser.cpp for the custom parser within NvDsInferParseCustomDDETRTAO to check for confidence thresholds, classIds, number of boxes, and more. The container also was specific to the deepstream_app_config.txt and nvdsinfer_config.yaml as well. Also, it was important to build .engine for the .onnx (using trtexec within the container to cache within) as opposed to copying from host machine as running deepstream complains about difference in .engine that's allowed within the container.    
+- I also configured a custom docker container that was modified for my specific setup. I used `docker commit nvcr.io/nvidia/deepstream-7.1-triton-multiarch:latest` to create it. For instance, I had debug statements within nvdsinfer_custombboxparser.cpp for the custom parser within NvDsInferParseCustomDDETRTAO to check for confidence thresholds, classIds, number of boxes, and more. The container also was specific to the deepstream_app_config.txt and nvdsinfer_config.yaml as well. Also, it was important to build .engine for the .onnx (using trtexec within the container to cache within) as opposed to copying from host machine as running deepstream complains about difference in .engine (such as GPU architecture, CUDA version, etc...) that's allowed within the container. Although evaluations from the docker container and TAO Launcher CLI are identical despite different .engine generations.     
 
 ***.tao_mounts.json (adjust based on your needs)***
-```
+``` 
 {
   "Mounts": [
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/data",
-      "destination": "/workspace/tao-experiments/data"
+      "source": "/windows/path/to/data",
+      "destination": "/linux/path/to/data"
     },
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/results",
-      "destination": "/workspace/tao-experiments/results"
+      "source": "/windows/path/to/results",
+      "destination": "/linux/path/to/results"
     },
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/specs",
-      "destination": "/workspace/tao-experiments/specs"
+      "source": "/windows/path/to/specs",
+      "destination": "/linux/path/to/specs"
     },
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/models",
-      "destination": "/workspace/tao-experiments/models"
+      "source": "/windows/path/to/models",
+      "destination": "/linux/path/to/models"
     },
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/configs",
-      "destination": "/workspace/tao-experiments/configs"
+      "source": "/windows/path/to/configs",
+      "destination": "/linux/path/to/configs"
     },
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/engines",
+      "source": "/windows/path/to/engines",
       "destination": "/workspace/tao-experiments/engines"
     },
     {
-      "source": "/mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/export",
-      "destination": "/workspace/tao-experiments/export"
+      "source": "/windows/path/to/export",
+      "destination": "/linux/path/to/export"
     }
 ],
   "Envs": [
@@ -154,15 +170,15 @@ Within the Ubuntu-22.04 environment, I had to setup the .tao_mounts.json to conf
   }
 }
 ```
-***To get the Docker container***
+***To get the custom Docker container***
 - `docker pull samloveswater/custom-deepstream-7.1-rtdetr_lpd:latest .`
 
 ***To run the Deepstream container with display***
 - `xhost +`
-- `docker run -it --gpus all -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection:/workspace/tao-experiments custom-deepstream-lpr:latest bash`
+- `docker run -it --gpus all -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /windows/path/to/:/linux/path/to/ custom-deepstream-lpr:latest bash`
 
 ***During training to view different metrics***
-- `tensorboard --logdir /mnt/c/Users/Sammy/GitHubProjects/License-Plate-Object-Detection/results/ --port 6007`
+- `tensorboard --logdir /windows/path/to/results/ --port 6007`
 
 Here are the specific Nvidia docs used to consult for this setup:
 - ***NGC CLI***: https://docs.ngc.nvidia.com/cli/cmd.html
@@ -170,7 +186,7 @@ Here are the specific Nvidia docs used to consult for this setup:
 - ***TAO for Containers***: https://docs.nvidia.com/tao/tao-toolkit/text/quick_start_guide/running_from_containers.html
 - ***RT-DETR***: https://docs.nvidia.com/tao/tao-toolkit/text/cv_finetuning/pytorch/object_detection/rt_detr.html#
 - ***TAO Deploy for RT-DETR***: https://docs.nvidia.com/tao/tao-toolkit/text/tao_deploy/rtdetr.html#rtdetr-with-tao-deploy
-- ***COCO Format for Object Detection***: https://docs.nvidia.com/tao/tao-toolkit/text/data_annotation_format.html#object-detection-coco-format
+- ***COCO for Object Detection***: https://docs.nvidia.com/tao/tao-toolkit/text/data_annotation_format.html#object-detection-coco-format
 - ***Deepstream for Docker Containers***: https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_docker_containers.html
 - ***TAO integration with Deepstream***: https://docs.nvidia.com/tao/tao-toolkit/text/ds_tao/deepstream_tao_integration.html
 - ***Deploy Deepstream for DETR***: https://docs.nvidia.com/tao/tao-toolkit/text/ds_tao/deepstream_tao_integration.html
@@ -179,6 +195,6 @@ Here are the specific Nvidia docs used to consult for this setup:
 
 ## Conclusion
 
-Although comparing to the performance for my model and Nvidia's pretrained TAO, my model definitely does not go head-to-head with Nvidia's well-developed models. In the future I would love to explore more datasets like the CCPD either as an addition or separate training cycle. From my experience for re-training from scratch to experimenting with augmentation for the model, there are a few considerations I would love to explore later on. I could train for more epochs, or at least finetune more of the parameters. I even consider maybe training Nvidia's LDPNet model with more data and fine-tuning to increase their accuracy and evaluation. However, this was a challenge I was enthuastic about because I wanted to learn how Nvidia's advance software in AI worked in production systems and the great community/tooling goes into building these sophisticated models.
+While my model doesn’t match the performance of NVIDIA’s pretrained TAO models, this project was a valuable learning experience. I explored training from scratch, data augmentation, and model tuning. In the future, I plan to experiment with additional datasets like CCPD and potentially fine-tune models like NVIDIA’s LPDNet to further improve performance. This challenge gave me hands-on insight into how advanced AI systems are built and deployed using NVIDIA’s powerful tools and community support.
 
 - ***CCPD***: https://github.com/detectRecog/CCPD
